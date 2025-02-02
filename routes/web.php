@@ -28,18 +28,29 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
-Route::middleware(['auth', 'admin'])->group(function () {
-    // Route untuk admin
-    Route::get('/admin/dashboard', function () {
-        return view('admin.dashboard');
-    })->name('admin.dashboard');
-});
 
 // Route untuk user biasa
 Route::middleware(['auth'])->group(function () {
     Route::get('/user/dashboard', function () {
         return view('user.dashboard');
     })->name('user.dashboard');
+});
+Route::middleware(['role:admin'])->group(function () {
+    Route::get('/admin/dashboard', [AdminController::class, 'index']);
+});
+
+Route::middleware(['role:manager'])->group(function () {
+    Route::get('/manager/dashboard', [ManagerController::class, 'index']);
+});
+
+Route::middleware(['role:karyawan'])->group(function () {
+    Route::get('/karyawan/dashboard', [KaryawanController::class, 'index']);
+});
+use App\Http\Controllers\AttendanceController;
+
+Route::middleware(['auth'])->group(function () {
+    Route::post('/attendance/check-in', [AttendanceController::class, 'checkIn'])->name('attendance.check-in');
+    Route::post('/attendance/check-out', [AttendanceController::class, 'checkOut'])->name('attendance.check-out');
 });
 
 
