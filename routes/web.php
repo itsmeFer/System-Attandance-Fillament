@@ -1,57 +1,41 @@
 <?php
 
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\AttendanceController;
+use App\Http\Controllers\AdminController;
+use App\Http\Controllers\ManagerController;
+use App\Http\Controllers\KaryawanController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Livewire\EmployeeAttendanceForm;
+use App\Filament\Pages\DashboardKaryawan;
 
-/*
-|--------------------------------------------------------------------------
-| Web Routes
-|--------------------------------------------------------------------------
-|
-| Here is where you can register web routes for your application. These
-| routes are loaded by the RouteServiceProvider and all of them will
-| be assigned to the "web" middleware group. Make something great!
-|
-*/
+Route::middleware(['auth', 'verified'])->group(function () {
+    // Dashboard
+    Route::get('/dashboard', function () {
+        return view('dashboard');
+    })->name('dashboard');
 
-Route::get('/', function () {
-    return view('welcome');
-});
+    // Admin Dashboard
+    Route::middleware(['role:admin'])->group(function () {
+        Route::get('/admin/dashboard', [AdminController::class, 'index'])->name('admin.dashboard');
+    });
 
-Route::get('/dashboard', function () {
-    return view('dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
+    // Manager Dashboard
+    Route::middleware(['role:manager'])->group(function () {
+        Route::get('/manager/dashboard', [ManagerController::class, 'index'])->name('manager.dashboard');
+    });
 
-Route::middleware('auth')->group(function () {
+    // Karyawan Dashboard & Absensi
+    Route::middleware(['auth', 'verified', 'role:karyawan'])->group(function () {
+        Route::get('/karyawan/attendance', [DashboardKaryawan::class, 'index'])->name('karyawan.attendance');
+        Route::post('/karyawan/attendance/check-out', [DashboardKaryawan::class, 'submitCheckOut'])->name('karyawan.check-out');
+    });
+    
+
+    // Profile Routes
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
-
-
-// Route untuk user biasa
-Route::middleware(['auth'])->group(function () {
-    Route::get('/user/dashboard', function () {
-        return view('user.dashboard');
-    })->name('user.dashboard');
-});
-Route::middleware(['role:admin'])->group(function () {
-    Route::get('/admin/dashboard', [AdminController::class, 'index']);
-});
-
-Route::middleware(['role:manager'])->group(function () {
-    Route::get('/manager/dashboard', [ManagerController::class, 'index']);
-});
-
-Route::middleware(['role:karyawan'])->group(function () {
-    Route::get('/karyawan/dashboard', [KaryawanController::class, 'index']);
-});
-use App\Http\Controllers\AttendanceController;
-
-Route::middleware(['auth'])->group(function () {
-    Route::post('/attendance/check-in', [AttendanceController::class, 'checkIn'])->name('attendance.check-in');
-    Route::post('/attendance/check-out', [AttendanceController::class, 'checkOut'])->name('attendance.check-out');
-});
-
 
 require __DIR__.'/auth.php';

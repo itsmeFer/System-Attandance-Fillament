@@ -9,68 +9,90 @@ use Illuminate\Support\Facades\Storage;
 
 class DashboardKaryawan extends Page
 {
-    protected static ?string $navigationLabel = 'Dashboard Karyawan'; // Nama menu
-
+    protected static ?string $navigationLabel = 'Dashboard Karyawan';    
     protected static string $view = 'filament.pages.dashboard-karyawan'; // Nama view custom
 
     public $check_in_location;
     public $check_out_location;
     public $photo;
 
-    // Melakukan pengecekan pada user yang login
     public function mount()
     {
-        // Cek apakah user adalah karyawan
         if (auth()->user()->role !== 'karyawan') {
-            abort(403); // Jika bukan karyawan, akses ditolak
+            abort(403);
         }
     }
 
-    // Fungsi untuk mengirimkan data absensi
+    // Fungsi untuk melakukan absensi
     public function submitAttendance()
     {
-        // Validasi jika foto absen diunggah
+        // Validasi dan simpan foto jika ada
         if ($this->photo) {
-            // Simpan foto dan ambil path
             $photoPath = $this->photo->store('photos', 'public');
         }
 
-        // Menyimpan data absensi
+        // Simpan data absensi
         Attendance::create([
             'user_id' => auth()->id(),
-            'check_in' => now(), // Waktu check-in
+            'check_in' => now(),
             'check_in_location' => $this->check_in_location,
-            'photo' => $photoPath ?? null, // Menyimpan path foto jika ada
+            'photo' => $photoPath ?? null,
         ]);
 
-        // Menambahkan notifikasi sukses
         session()->flash('message', 'Absen berhasil!');
     }
 
-    // Skema form untuk input data absensi
+    // Fungsi untuk melakukan check-out
+    public function submitCheckOut()
+    {
+        // Cek apakah karyawan sudah check-in
+        $attendance = Attendance::where('user_id', auth()->id())
+                                 ->whereNull('check_out')
+                                 ->first();
+
+        if ($attendance) {
+            // Update data check-out
+            $attendance->update([
+                'check_out' => now(),
+                'check_out_location' => $this->check_out_location,
+            ]);
+
+            session()->flash('message', 'Check-out berhasil!');
+        } else {
+            session()->flash('error', 'Anda belum melakukan check-in!');
+        }
+    }
+
+    // Skema form absensi
     protected function getFormSchema(): array
     {
         return [
-            // Input untuk lokasi check-in
             Forms\Components\TextInput::make('check_in_location')
                 ->label('Lokasi Check-In')
                 ->required(),
 
-            // Upload foto saat absensi
             Forms\Components\FileUpload::make('photo')
                 ->label('Foto Absen')
-                ->required()
-                ->disk('public')
-                ->directory('photos')
                 ->image()
                 ->maxSize(1024)
-                ->columnSpan(2), // Mengatur lebar kolom
+                ->disk('public')
+                ->directory('photos')
+                ->nullable()
+                ->columnSpan(2),
 
-            // Tombol untuk melakukan absen
             Forms\Components\Button::make('Absen')
-                ->action('submitAttendance') // Menghubungkan dengan fungsi submit
+                ->action('submitAttendance')
                 ->label('Absen Sekarang')
                 ->color('primary'),
+
+            Forms\Components\TextInput::make('check_out_location')
+                ->label('Lokasi Check-Out')
+                ->nullable(),
+
+            Forms\Components\Button::make('Check-Out')
+                ->action('submitCheckOut')
+                ->label('Check-Out Sekarang')
+                ->color('secondary'),
         ];
     }
 }
